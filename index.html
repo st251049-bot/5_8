@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ワールド・ディベート・アリーナ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        /* フェードインアニメーション */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message-enter {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        /* タイピングアニメーション */
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* トースト通知 */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            animation: fadeIn 0.3s ease-out forwards, fadeOut 0.3s ease-in forwards 2.7s;
+            opacity: 0;
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; display: none; }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex flex-col overflow-hidden font-sans">
+
+    <!-- ナビゲーションバー -->
+    <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg text-white">
+                <i class="fa-solid fa-globe text-xl"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-wider hidden sm:block">World Debate Arena</h1>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="text-right">
+                <div class="text-xs text-gray-400 uppercase tracking-wide">あなたの影響力</div>
+                <div class="text-lg font-bold text-blue-400" id="score-display">0 INF</div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-gray-400 uppercase tracking-wide">ランク</div>
+                <div class="text-lg font-bold text-yellow-400" id="rank-display">ルーキー</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- サイドバー：ニュースフィード -->
+        <aside class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0 md:h-full h-1/3 border-b md:border-b-0">
+            <div class="p-4 border-b border-gray-700 bg-gray-800/50">
+                <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider"><i class="fa-regular fa-newspaper mr-2"></i>討論トピック</h2>
+            </div>
+            <div class="flex-1 overflow-y-auto p-2 space-y-2" id="topic-list">
+                <!-- トピックリストがここにJSで生成される -->
+            </div>
+        </aside>
+
+        <!-- ディベートエリア -->
+        <section class="flex-1 flex flex-col bg-gray-900 relative">
+            
+            <!-- トピックヘッダー -->
+            <div class="p-4 md:p-6 border-b border-gray-800 bg-gray-900 shrink-0">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded font-semibold" id="topic-category">テクノロジー</span>
+                    <span class="text-xs text-gray-500" id="topic-source">Global News Network</span>
+                </div>
+                <h2 class="text-xl md:text-2xl font-bold mb-2 leading-tight" id="topic-title">AIの進化により、今後10年で人類の仕事の半分が消滅する？</h2>
+                <p class="text-sm text-gray-400 line-clamp-2" id="topic-summary">最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。これについてどう考えますか？</p>
+            </div>
+
+            <!-- チャットエリア -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6" id="chat-container">
+                <!-- メッセージがここに生成される -->
+            </div>
+
+            <!-- タイピングインジケーター（隠し） -->
+            <div id="typing-indicator" class="hidden px-6 pb-2 text-sm text-gray-500 flex items-center gap-2">
+                <i class="fa-solid fa-robot"></i> 誰かが入力中...
+                <div class="flex gap-1 ml-1">
+                    <div class="w-1.5 h-1.5 bg-gray-500 rounded-full typing-dot"></div>
+                    <div class="w-1.5 h-1.5 bg-gray-500 rounded-full typing-dot"></div>
+                    <div class="w-1.5 h-1.5 bg-gray-500 rounded-full typing-dot"></div>
+                </div>
+            </div>
+
+            <!-- 入力エリア -->
+            <div class="p-4 bg-gray-800 border-t border-gray-700 shrink-0">
+                <div class="max-w-4xl mx-auto flex flex-col gap-3">
+                    <div class="flex gap-2">
+                        <button class="stance-btn active flex-1 py-2 rounded border border-gray-600 bg-gray-700 hover:bg-gray-600 transition text-sm" data-stance="neutral">🤔 中立 / 質問</button>
+                        <button class="stance-btn flex-1 py-2 rounded border border-gray-600 hover:bg-green-600/30 hover:border-green-500 transition text-sm" data-stance="agree">👍 賛成 / 肯定</button>
+                        <button class="stance-btn flex-1 py-2 rounded border border-gray-600 hover:bg-red-600/30 hover:border-red-500 transition text-sm" data-stance="disagree">👎 反対 / 否定</button>
+                    </div>
+                    <div class="flex gap-2 relative">
+                        <textarea id="message-input" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none" rows="2" placeholder="あなたの意見を世界に発信しよう..."></textarea>
+                        <button id="send-btn" class="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-6 font-bold transition flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-paper-plane mr-2"></i>発言
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // === クラウド通信のセットアップ ===
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        let currentUser = null;
+        let unsubscribeChat = null;
+        
+        // ランダムなユーザープロフィールを生成
+        const countries = ['🇯🇵', '🇺🇸', '🇬🇧', '🇫🇷', '🇩🇪', '🇮🇹', '🇨🇦', '🇦🇺', '🇧🇷', '🇮🇳', '🇰🇷', '🇸🇪'];
+        const userCountry = countries[Math.floor(Math.random() * countries.length)];
+        const userName = "User_" + Math.floor(Math.random() * 10000);
+
+        // === ゲームデータ ===
+        const topics = [
+            {
+                id: 'ai-jobs',
+                category: 'テクノロジー',
+                title: 'AIの進化により、今後10年で人類の仕事の半分が消滅する？',
+                summary: '最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。ベーシックインカムの導入を含め、社会はこれにどう備えるべきでしょうか？'
+            },
+            {
+                id: 'four-day-week',
+                category: '社会・経済',
+                title: '「週休3日制（週4日勤務）」は世界標準になるべきか？',
+                summary: 'ヨーロッパの一部企業で導入が進む週休3日制。生産性が向上したという報告がある一方で、サービス業などでは導入が難しいという声もあります。'
+            },
+            {
+                id: 'space-vs-earth',
+                category: '科学・環境',
+                title: '火星移住計画よりも、地球の気候変動対策に全予算を注ぐべきか？',
+                summary: '莫大な予算が投じられている宇宙開発。しかし、足元の地球では異常気象や環境破壊が進行しています。人類の優先順位はどちらにあるべきでしょうか。'
+            }
+        ];
+
+        // === 状態管理 ===
+        let currentTopicId = topics[0].id;
+        let userScore = 0;
+        let currentStance = 'neutral';
+        const chats = {}; // リアルタイムで取得したチャットデータ
+
+        // === DOM要素 ===
+        const topicListEl = document.getElementById('topic-list');
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const stanceBtns = document.querySelectorAll('.stance-btn');
+        const scoreDisplay = document.getElementById('score-display');
+        const rankDisplay = document.getElementById('rank-display');
+
+        // === 認証と初期化 ===
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("認証エラー:", error);
+                showToast("通信サーバーへの接続に失敗しました", "error");
+            }
+        }
+
+        function init() {
+            renderTopicList();
+            
+            // 認証状態の監視
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    selectTopic(topics[0].id); // 認証後にトピックのデータを取得開始
+                    showToast("グローバルネットワークに接続しました");
+                }
+            });
+
+            // イベントリスナー
+            sendBtn.addEventListener('click', handleSendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                }
+            });
+
+            stanceBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    stanceBtns.forEach(b => {
+                        b.classList.remove('bg-gray-700', 'border-blue-500', 'border-green-500', 'border-red-500');
+                        b.classList.add('border-gray-600');
+                    });
+                    currentStance = e.target.dataset.stance;
+                    e.target.classList.remove('border-gray-600');
+                    if (currentStance === 'neutral') e.target.classList.add('bg-gray-700', 'border-blue-500');
+                    if (currentStance === 'agree') e.target.classList.add('bg-green-600/30', 'border-green-500');
+                    if (currentStance === 'disagree') e.target.classList.add('bg-red-600/30', 'border-red-500');
+                });
+            });
+        }
+
+        // === リアルタイムデータの購読 ===
+        function subscribeToTopic(topicId) {
+            if (unsubscribeChat) {
+                unsubscribeChat(); // 以前のトピックの監視を解除
+            }
+            if (!currentUser) return;
+
+            const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', `messages_${topicId}`);
+            
+            unsubscribeChat = onSnapshot(messagesRef, (snapshot) => {
+                const msgs = [];
+                snapshot.forEach(doc => {
+                    msgs.push({ id: doc.id, ...doc.data() });
+                });
+                
+                // タイムスタンプ順にソート
+                msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                
+                chats[topicId] = msgs;
+                renderMessages();
+            }, (error) => {
+                console.error("メッセージ取得エラー:", error);
+            });
+        }
+
+        // === UI更新関数 ===
+        function renderTopicList() {
+            topicListEl.innerHTML = '';
+            topics.forEach(topic => {
+                const isActive = topic.id === currentTopicId;
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-lg cursor-pointer transition border ${isActive ? 'bg-blue-900/30 border-blue-500' : 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-500'}`;
+                div.onclick = () => selectTopic(topic.id);
+                div.innerHTML = `
+                    <div class="text-xs text-blue-400 mb-1">${topic.category}</div>
+                    <div class="text-sm font-bold text-gray-200 line-clamp-2">${topic.title}</div>
+                    <div class="text-xs text-gray-500 mt-2 flex justify-between">
+                        <span><i class="fa-solid fa-users"></i> Live</span>
+                    </div>
+                `;
+                topicListEl.appendChild(div);
+            });
+        }
+
+        function selectTopic(id) {
+            currentTopicId = id;
+            const topic = topics.find(t => t.id === id);
+            
+            // ヘッダー更新
+            document.getElementById('topic-category').textContent = topic.category;
+            document.getElementById('topic-title').textContent = topic.title;
+            document.getElementById('topic-summary').textContent = topic.summary;
+
+            renderTopicList(); 
+            
+            // 該当トピックのリアルタイム通信を開始
+            subscribeToTopic(id);
+        }
+
+        function renderMessages() {
+            chatContainer.innerHTML = '';
+            
+            // システムメッセージを先頭に追加
+            const currentTopic = topics.find(t => t.id === currentTopicId);
+            const sysEl = document.createElement('div');
+            sysEl.className = 'message-enter flex justify-center my-4';
+            sysEl.innerHTML = `<span class="bg-gray-800 text-gray-400 text-xs px-3 py-1 rounded-full">🗣️ 「${currentTopic.title}」のディベートが開始されました。</span>`;
+            chatContainer.appendChild(sysEl);
+
+            const messages = chats[currentTopicId] || [];
+            const stanceIcons = { neutral: '🤔', agree: '👍', disagree: '👎' };
+            
+            messages.forEach(msg => {
+                const isMine = msg.userId === currentUser?.uid;
+                const msgEl = document.createElement('div');
+                msgEl.className = 'message-enter flex gap-4 w-full ' + (isMine ? 'justify-end' : 'justify-start');
+
+                if (isMine) {
+                    msgEl.innerHTML = `
+                        <div class="max-w-[80%] flex flex-col items-end gap-1">
+                            <div class="flex items-center gap-2 text-xs text-gray-400">
+                                <span class="text-blue-400 font-bold">You (${msg.country || userCountry})</span>
+                                <span>${stanceIcons[msg.stance] || '🤔'}</span>
+                            </div>
+                            <div class="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-sm shadow-md text-sm leading-relaxed whitespace-pre-wrap">${msg.text}</div>
+                            <div class="text-xs text-gray-500 flex items-center gap-1">
+                                <i class="fa-solid fa-heart text-pink-500"></i> ${msg.likes || 0}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    msgEl.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-lg shrink-0 border border-gray-600 shadow-sm">
+                            ${msg.country || '🌍'}
+                        </div>
+                        <div class="max-w-[80%] flex flex-col items-start gap-1">
+                            <div class="text-xs text-gray-400 font-bold flex items-center gap-2">
+                                ${msg.name || 'Anonymous'}
+                                <span>${stanceIcons[msg.stance] || '🤔'}</span>
+                            </div>
+                            <div class="bg-gray-800 border border-gray-700 text-gray-200 p-3 rounded-2xl rounded-tl-sm shadow-md text-sm leading-relaxed whitespace-pre-wrap">${msg.text}</div>
+                            <div class="text-xs text-gray-500 flex items-center gap-3">
+                                <button class="hover:text-pink-400 transition flex items-center gap-1" onclick="likeMessage('${msg.id}', ${msg.likes || 0})">
+                                    <i class="fa-regular fa-heart"></i> ${msg.likes || 0}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+                chatContainer.appendChild(msgEl);
+            });
+
+            scrollToBottom();
+        }
+
+        // === アクション ===
+        async function handleSendMessage() {
+            const text = messageInput.value.trim();
+            if (!text || !currentUser) return;
+
+            const messageData = {
+                text: text,
+                stance: currentStance,
+                userId: currentUser.uid,
+                name: userName,
+                country: userCountry,
+                timestamp: Date.now(),
+                likes: 0
+            };
+
+            messageInput.value = ''; // すぐにクリアして体感速度を上げる
+            
+            try {
+                const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`);
+                await addDoc(messagesRef, messageData);
+                
+                // スコアアップ処理
+                const earnedScore = Math.floor(text.length * 0.5) + 10; 
+                addScore(earnedScore);
+                showToast(`発言を世界に送信しました！ 影響力 +${earnedScore} INF`);
+            } catch (error) {
+                console.error("送信エラー:", error);
+                showToast("メッセージの送信に失敗しました", "error");
+            }
+        }
+
+        // グローバルスコープに関数を公開（onclick用）
+        window.likeMessage = async function(messageId, currentLikes) {
+            if (!currentUser) return;
+            try {
+                const msgRef = doc(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`, messageId);
+                await updateDoc(msgRef, {
+                    likes: currentLikes + 1
+                });
+                addScore(5); // いいねしてもスコアが少し上がる
+                showToast("共感しました！");
+            } catch (error) {
+                console.error("いいねエラー:", error);
+            }
+        };
+
+        // === ユーティリティ ===
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addScore(points) {
+            userScore += points;
+            
+            scoreDisplay.textContent = `${userScore} INF`;
+            scoreDisplay.classList.add('text-white', 'scale-110');
+            setTimeout(() => {
+                scoreDisplay.classList.remove('text-white', 'scale-110');
+            }, 300);
+
+            let newRank = "ルーキー";
+            if (userScore > 500) newRank = "グローバルインフルエンサー";
+            else if (userScore > 200) newRank = "オピニオンリーダー";
+            else if (userScore > 100) newRank = "ディベーター";
+
+            if (rankDisplay.textContent !== newRank) {
+                rankDisplay.textContent = newRank;
+                showToast(`🎉 ランクアップ！ [${newRank}] になりました！`);
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast flex items-center gap-3';
+            if (type === 'info') {
+                toast.style.background = 'rgba(59, 130, 246, 0.9)'; 
+            } else if (type === 'error') {
+                toast.style.background = 'rgba(239, 68, 68, 0.9)';
+            }
+            toast.innerHTML = `<i class="fa-solid fa-bell"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                if(toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 3000);
+        }
+
+        // 実行開始
+        initAuth().then(init);
+
+    </script>
+</body>
+</html>
