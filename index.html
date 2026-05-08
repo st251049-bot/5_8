@@ -103,7 +103,15 @@
                     <span class="text-xs text-gray-500" id="topic-source">Global News Network</span>
                 </div>
                 <h2 class="text-xl md:text-2xl font-bold mb-2 leading-tight" id="topic-title">AIの進化により、今後10年で人類の仕事の半分が消滅する？</h2>
-                <p class="text-sm text-gray-400 line-clamp-2" id="topic-summary">最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。これについてどう考えますか？</p>
+                <p class="text-sm text-gray-400 mb-4" id="topic-summary">最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。これについてどう考えますか？</p>
+                
+                <!-- 追加: 参考資料セクション -->
+                <div class="bg-gray-800/80 rounded-lg p-3 border border-gray-700">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-book-open mr-1"></i> 参考資料</h3>
+                    <ul class="text-sm space-y-2" id="topic-references">
+                        <!-- 資料リストがここに生成される -->
+                    </ul>
+                </div>
             </div>
 
             <!-- チャットエリア -->
@@ -148,10 +156,8 @@
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // === クラウド通信のセットアップ ===
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        let isOnline = false;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         
         let currentUser = null;
@@ -168,19 +174,34 @@
                 id: 'ai-jobs',
                 category: 'テクノロジー',
                 title: 'AIの進化により、今後10年で人類の仕事の半分が消滅する？',
-                summary: '最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。ベーシックインカムの導入を含め、社会はこれにどう備えるべきでしょうか？'
+                summary: '最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。ベーシックインカムの導入を含め、社会はこれにどう備えるべきでしょうか？',
+                references: [
+                    { title: "World Economic Forum: The Future of Jobs Report", url: "#" },
+                    { title: "MIT Technology Review: AI and the Workforce", url: "#" },
+                    { title: "Global AI Ethics Council: Policy Recommendations", url: "#" }
+                ]
             },
             {
                 id: 'four-day-week',
                 category: '社会・経済',
                 title: '「週休3日制（週4日勤務）」は世界標準になるべきか？',
-                summary: 'ヨーロッパの一部企業で導入が進む週休3日制。生産性が向上したという報告がある一方で、サービス業などでは導入が難しいという声もあります。'
+                summary: 'ヨーロッパの一部企業で導入が進む週休3日制。生産性が向上したという報告がある一方で、サービス業などでは導入が難しいという声もあります。',
+                references: [
+                    { title: "European Working Conditions Survey", url: "#" },
+                    { title: "Harvard Business Review: The Case for a 4-Day Workweek", url: "#" },
+                    { title: "International Labour Organization: Working Time", url: "#" }
+                ]
             },
             {
                 id: 'space-vs-earth',
                 category: '科学・環境',
                 title: '火星移住計画よりも、地球の気候変動対策に全予算を注ぐべきか？',
-                summary: '莫大な予算が投じられている宇宙開発。しかし、足元の地球では異常気象や環境破壊が進行しています。人類の優先順位はどちらにあるべきでしょうか。'
+                summary: '莫大な予算が投じられている宇宙開発。しかし、足元の地球では異常気象や環境破壊が進行しています。人類の優先順位はどちらにあるべきでしょうか。',
+                references: [
+                    { title: "UN Environment Programme: Global Climate Report", url: "#" },
+                    { title: "NASA: Climate Change and Space Exploration", url: "#" },
+                    { title: "Nature: Prioritizing Earth vs. Space Investments", url: "#" }
+                ]
             }
         ];
 
@@ -200,30 +221,46 @@
         const rankDisplay = document.getElementById('rank-display');
 
         // === 認証と初期化 ===
-        async function initAuth() {
+        async function initNetwork() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+                    
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    isOnline = true;
+                    showToast("グローバルネットワークに接続しました");
+                    
+                    onAuthStateChanged(auth, (user) => {
+                        currentUser = user;
+                        if (user && isOnline) {
+                            selectTopic(currentTopicId); // 認証後にトピックのデータを取得開始
+                        }
+                    });
                 } else {
-                    await signInAnonymously(auth);
+                    // Firebase設定がない環境（ご自身のホームページ等）での動作フォールバック
+                    console.log("Firebase config not found. Running in local mode.");
+                    showToast("ローカルモードで起動しました", "info");
+                    isOnline = false;
                 }
             } catch (error) {
-                console.error("認証エラー:", error);
-                showToast("通信サーバーへの接続に失敗しました", "error");
+                console.error("ネットワーク初期化エラー:", error);
+                showToast("通信サーバーに接続できません。ローカルモードで動作します。", "error");
+                isOnline = false;
             }
         }
 
         function init() {
             renderTopicList();
             
-            // 認証状態の監視
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    selectTopic(topics[0].id); // 認証後にトピックのデータを取得開始
-                    showToast("グローバルネットワークに接続しました");
-                }
-            });
+            // 初回トピック選択（オフライン時または初期表示用）
+            selectTopic(topics[0].id);
 
             // イベントリスナー
             sendBtn.addEventListener('click', handleSendMessage);
@@ -251,6 +288,7 @@
 
         // === リアルタイムデータの購読 ===
         function subscribeToTopic(topicId) {
+            if (!isOnline || !db) return;
             if (unsubscribeChat) {
                 unsubscribeChat(); // 以前のトピックの監視を解除
             }
@@ -286,7 +324,7 @@
                     <div class="text-xs text-blue-400 mb-1">${topic.category}</div>
                     <div class="text-sm font-bold text-gray-200 line-clamp-2">${topic.title}</div>
                     <div class="text-xs text-gray-500 mt-2 flex justify-between">
-                        <span><i class="fa-solid fa-users"></i> Live</span>
+                        <span><i class="fa-solid fa-users"></i> ${isOnline ? 'Live' : 'Local'}</span>
                     </div>
                 `;
                 topicListEl.appendChild(div);
@@ -302,10 +340,28 @@
             document.getElementById('topic-title').textContent = topic.title;
             document.getElementById('topic-summary').textContent = topic.summary;
 
+            // 資料リスト更新
+            const refContainer = document.getElementById('topic-references');
+            if (refContainer) {
+                refContainer.innerHTML = '';
+                if (topic.references) {
+                    topic.references.forEach(ref => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="${ref.url}" target="_blank" class="text-blue-400 hover:text-blue-300 transition flex items-center"><i class="fa-solid fa-external-link-alt text-xs w-4"></i><span class="hover:underline">${ref.title}</span></a>`;
+                        refContainer.appendChild(li);
+                    });
+                }
+            }
+
             renderTopicList(); 
             
-            // 該当トピックのリアルタイム通信を開始
-            subscribeToTopic(id);
+            if (isOnline) {
+                subscribeToTopic(id);
+            } else {
+                // ローカルモードの場合は保存されている履歴を表示
+                if (!chats[id]) chats[id] = [];
+                renderMessages();
+            }
         }
 
         function renderMessages() {
@@ -367,12 +423,15 @@
         // === アクション ===
         async function handleSendMessage() {
             const text = messageInput.value.trim();
-            if (!text || !currentUser) return;
+            if (!text) return;
+            // オンライン環境で未ログインの場合は処理しない
+            if (isOnline && !currentUser) return;
 
             const messageData = {
+                id: 'msg_' + Date.now(), // ローカルモード用のID
                 text: text,
                 stance: currentStance,
-                userId: currentUser.uid,
+                userId: currentUser?.uid || 'local_user_' + Date.now(),
                 name: userName,
                 country: userCountry,
                 timestamp: Date.now(),
@@ -381,32 +440,54 @@
 
             messageInput.value = ''; // すぐにクリアして体感速度を上げる
             
-            try {
-                const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`);
-                await addDoc(messagesRef, messageData);
+            if (isOnline && db) {
+                try {
+                    const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`);
+                    await addDoc(messagesRef, messageData);
+                    
+                    // スコアアップ処理
+                    const earnedScore = Math.floor(text.length * 0.5) + 10; 
+                    addScore(earnedScore);
+                    showToast(`発言を世界に送信しました！ 影響力 +${earnedScore} INF`);
+                } catch (error) {
+                    console.error("送信エラー:", error);
+                    showToast("メッセージの送信に失敗しました", "error");
+                }
+            } else {
+                // ローカルモード時の処理
+                if (!chats[currentTopicId]) chats[currentTopicId] = [];
+                chats[currentTopicId].push(messageData);
+                renderMessages();
                 
-                // スコアアップ処理
                 const earnedScore = Math.floor(text.length * 0.5) + 10; 
                 addScore(earnedScore);
-                showToast(`発言を世界に送信しました！ 影響力 +${earnedScore} INF`);
-            } catch (error) {
-                console.error("送信エラー:", error);
-                showToast("メッセージの送信に失敗しました", "error");
+                showToast(`発言しました！（ローカル） 影響力 +${earnedScore} INF`);
             }
         }
 
         // グローバルスコープに関数を公開（onclick用）
         window.likeMessage = async function(messageId, currentLikes) {
-            if (!currentUser) return;
-            try {
-                const msgRef = doc(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`, messageId);
-                await updateDoc(msgRef, {
-                    likes: currentLikes + 1
-                });
-                addScore(5); // いいねしてもスコアが少し上がる
-                showToast("共感しました！");
-            } catch (error) {
-                console.error("いいねエラー:", error);
+            if (isOnline && db && currentUser) {
+                try {
+                    const msgRef = doc(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`, messageId);
+                    await updateDoc(msgRef, {
+                        likes: currentLikes + 1
+                    });
+                    addScore(5); // いいねしてもスコアが少し上がる
+                    showToast("共感しました！");
+                } catch (error) {
+                    console.error("いいねエラー:", error);
+                }
+            } else if (!isOnline) {
+                // ローカルモード時の処理
+                const msgs = chats[currentTopicId] || [];
+                const targetMsg = msgs.find(m => m.id === messageId);
+                if (targetMsg) {
+                    targetMsg.likes = (targetMsg.likes || 0) + 1;
+                    renderMessages();
+                    addScore(5);
+                    showToast("共感しました！（ローカル）");
+                }
             }
         };
 
@@ -452,8 +533,8 @@
             }, 3000);
         }
 
-        // 実行開始
-        initAuth().then(init);
+        // 実行開始 (ネットワーク初期化後にUI初期化)
+        initNetwork().then(init);
 
     </script>
 </body>
