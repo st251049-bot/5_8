@@ -3,15 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ワールド・ディベート・アリーナ</title>
+    <title>にゃんこディベートカフェ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* カスタムスクロールバー */
+        body {
+            font-family: 'Nunito', 'Kiwi Maru', sans-serif;
+        }
+
+        /* カスタムスクロールバー（柔らかい色） */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
 
         /* フェードインアニメーション */
         @keyframes fadeIn {
@@ -19,18 +25,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .message-enter {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-
-        /* タイピングアニメーション */
-        .typing-dot {
-            animation: typing 1.4s infinite ease-in-out both;
-        }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+            animation: fadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
         /* トースト通知 */
@@ -44,103 +39,118 @@
             gap: 10px;
         }
         .toast {
-            background: rgba(16, 185, 129, 0.9);
+            background: #292524; /* stone-800 */
             color: white;
             padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border-radius: 8px; /* md */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-weight: 500;
             animation: fadeIn 0.3s ease-out forwards, fadeOut 0.3s ease-in forwards 2.7s;
             opacity: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         @keyframes fadeOut {
             from { opacity: 1; }
             to { opacity: 0; display: none; }
         }
+
+        /* ボタンのホバーエフェクト */
+        .btn-press:active {
+            transform: scale(0.95);
+        }
+
+        /* タイピングアニメーション */
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 h-screen flex flex-col overflow-hidden font-sans">
+<body class="bg-stone-50 text-stone-800 h-screen flex flex-col overflow-hidden">
 
     <!-- ナビゲーションバー -->
-    <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md shrink-0">
+    <header class="bg-white border-b border-stone-200 px-4 sm:px-6 py-3 flex justify-between items-center shrink-0 z-10">
         <div class="flex items-center gap-3">
-            <div class="bg-blue-600 p-2 rounded-lg text-white">
-                <i class="fa-solid fa-globe text-xl"></i>
+            <div class="text-stone-800">
+                <i class="fa-solid fa-cat text-2xl"></i>
             </div>
-            <h1 class="text-xl font-bold tracking-wider hidden sm:block">World Debate Arena</h1>
+            <h1 class="text-xl font-bold tracking-wide hidden sm:block">Nyanko Debate Cafe</h1>
         </div>
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-4 sm:gap-6">
+            <button onclick="resetData()" class="text-xs text-stone-400 hover:text-stone-600 transition underline decoration-dotted hidden md:block">データをリセット</button>
             <div class="text-right">
-                <div class="text-xs text-gray-400 uppercase tracking-wide">あなたの影響力</div>
-                <div class="text-lg font-bold text-blue-400" id="score-display">0 INF</div>
+                <div class="text-[10px] text-stone-400 font-bold tracking-wider">ポイント</div>
+                <div class="text-base sm:text-lg font-bold text-stone-700 transition-transform duration-300" id="score-display">0 🐾</div>
             </div>
-            <div class="text-right">
-                <div class="text-xs text-gray-400 uppercase tracking-wide">ランク</div>
-                <div class="text-lg font-bold text-yellow-400" id="rank-display">ルーキー</div>
+            <div class="text-right hidden sm:block">
+                <div class="text-[10px] text-stone-400 font-bold tracking-wider">ランク</div>
+                <div class="text-lg font-bold text-stone-700" id="rank-display">子猫</div>
             </div>
         </div>
     </header>
 
     <!-- メインコンテンツ -->
-    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
         <!-- サイドバー：ニュースフィード -->
-        <aside class="w-full md:w-1/3 lg:w-1/4 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0 md:h-full h-1/3 border-b md:border-b-0">
-            <div class="p-4 border-b border-gray-700 bg-gray-800/50">
-                <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider"><i class="fa-regular fa-newspaper mr-2"></i>討論トピック</h2>
+        <aside class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-stone-200 flex flex-col shrink-0 md:h-full h-48 md:h-auto border-b md:border-b-0 z-10">
+            <div class="p-4 border-b border-stone-200">
+                <h2 class="text-sm font-bold text-stone-600 tracking-wider flex items-center">
+                    <i class="fa-solid fa-list-ul mr-2 text-stone-400"></i> トピック
+                </h2>
             </div>
-            <div class="flex-1 overflow-y-auto p-2 space-y-2" id="topic-list">
+            <div class="flex-1 overflow-y-auto" id="topic-list">
                 <!-- トピックリストがここにJSで生成される -->
             </div>
         </aside>
 
         <!-- ディベートエリア -->
-        <section class="flex-1 flex flex-col bg-gray-900 relative">
+        <section class="flex-1 flex flex-col relative bg-transparent h-full">
             
             <!-- トピックヘッダー -->
-            <div class="p-4 md:p-6 border-b border-gray-800 bg-gray-900 shrink-0">
-                <div class="flex justify-between items-start mb-2">
-                    <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded font-semibold" id="topic-category">テクノロジー</span>
-                    <span class="text-xs text-gray-500" id="topic-source">Global News Network</span>
+            <div class="px-4 py-3 md:px-6 md:py-4 border-b border-stone-200 bg-white shrink-0 z-10">
+                <div class="flex justify-between items-start mb-1">
+                    <span class="text-stone-500 text-[10px] sm:text-xs font-bold" id="topic-category">カテゴリ</span>
                 </div>
-                <h2 class="text-xl md:text-2xl font-bold mb-2 leading-tight" id="topic-title">AIの進化により、今後10年で人類の仕事の半分が消滅する？</h2>
-                <p class="text-sm text-gray-400 mb-4" id="topic-summary">最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。これについてどう考えますか？</p>
-                
-                <!-- 追加: 参考資料セクション -->
-                <div class="bg-gray-800/80 rounded-lg p-3 border border-gray-700">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-book-open mr-1"></i> 参考資料</h3>
-                    <ul class="text-sm space-y-2" id="topic-references">
-                        <!-- 資料リストがここに生成される -->
-                    </ul>
-                </div>
+                <h2 class="text-lg sm:text-xl font-bold mb-1 leading-tight text-stone-800" id="topic-title">タイトル</h2>
+                <p class="text-xs sm:text-sm text-stone-500 leading-relaxed hidden sm:block" id="topic-summary">概要</p>
             </div>
 
             <!-- チャットエリア -->
-            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6" id="chat-container">
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 pb-4" id="chat-container">
                 <!-- メッセージがここに生成される -->
             </div>
 
-            <!-- タイピングインジケーター（隠し） -->
-            <div id="typing-indicator" class="hidden px-6 pb-2 text-sm text-gray-500 flex items-center gap-2">
-                <i class="fa-solid fa-robot"></i> 誰かが入力中...
-                <div class="flex gap-1 ml-1">
-                    <div class="w-1.5 h-1.5 bg-gray-500 rounded-full typing-dot"></div>
-                    <div class="w-1.5 h-1.5 bg-gray-500 rounded-full typing-dot"></div>
-                    <div class="w-1.5 h-1.5 bg-gray-500 rounded-full typing-dot"></div>
+            <!-- タイピングインジケーター（デフォルト非表示） -->
+            <div id="typing-indicator" class="px-6 pb-2 hidden flex gap-3 w-full justify-start items-end absolute bottom-[100px] sm:bottom-[120px]">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-100 flex items-center justify-center text-lg sm:text-xl shrink-0">
+                    🐾
+                </div>
+                <div class="bg-white border border-stone-200 p-3 sm:p-4 rounded-lg rounded-tl-sm flex items-center gap-1.5 h-10 sm:h-12">
+                    <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-stone-400 rounded-full typing-dot" style="animation-delay: 0s"></div>
+                    <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-stone-400 rounded-full typing-dot" style="animation-delay: 0.2s"></div>
+                    <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-stone-400 rounded-full typing-dot" style="animation-delay: 0.4s"></div>
                 </div>
             </div>
 
             <!-- 入力エリア -->
-            <div class="p-4 bg-gray-800 border-t border-gray-700 shrink-0">
-                <div class="max-w-4xl mx-auto flex flex-col gap-3">
-                    <div class="flex gap-2">
-                        <button class="stance-btn active flex-1 py-2 rounded border border-gray-600 bg-gray-700 hover:bg-gray-600 transition text-sm" data-stance="neutral">🤔 中立 / 質問</button>
-                        <button class="stance-btn flex-1 py-2 rounded border border-gray-600 hover:bg-green-600/30 hover:border-green-500 transition text-sm" data-stance="agree">👍 賛成 / 肯定</button>
-                        <button class="stance-btn flex-1 py-2 rounded border border-gray-600 hover:bg-red-600/30 hover:border-red-500 transition text-sm" data-stance="disagree">👎 反対 / 否定</button>
+            <div class="p-3 sm:p-4 bg-white border-t border-stone-200 shrink-0 z-10">
+                <div class="max-w-4xl mx-auto flex flex-col gap-2 sm:gap-3">
+                    <div class="flex gap-1 sm:gap-2">
+                        <button class="stance-btn active flex-1 py-2 sm:py-2.5 rounded-md border border-stone-800 bg-stone-800 text-white font-bold transition text-[10px] sm:text-sm" data-stance="neutral">🐾 中立</button>
+                        <button class="stance-btn flex-1 py-2 sm:py-2.5 rounded-md border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 font-bold transition text-[10px] sm:text-sm" data-stance="agree">🐟 賛成</button>
+                        <button class="stance-btn flex-1 py-2 sm:py-2.5 rounded-md border border-stone-200 bg-white hover:bg-stone-50 text-stone-600 font-bold transition text-[10px] sm:text-sm" data-stance="disagree">💢 反対</button>
                     </div>
                     <div class="flex gap-2 relative">
-                        <textarea id="message-input" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none" rows="2" placeholder="あなたの意見を世界に発信しよう..."></textarea>
-                        <button id="send-btn" class="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-6 font-bold transition flex items-center justify-center shrink-0">
-                            <i class="fa-solid fa-paper-plane mr-2"></i>発言
+                        <textarea id="message-input" class="w-full bg-stone-50 border border-stone-200 rounded-md p-3 text-sm focus:outline-none focus:border-stone-400 resize-none" rows="2" placeholder="メッセージを入力..."></textarea>
+                        <button id="send-btn" class="bg-stone-800 hover:bg-stone-700 text-white rounded-md px-4 sm:px-6 font-bold transition flex flex-col items-center justify-center shrink-0 btn-press disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fa-regular fa-paper-plane text-base sm:text-lg mb-0.5 sm:mb-1"></i>
+                            <span class="text-[10px] sm:text-xs hidden sm:inline">送信</span>
                         </button>
                     </div>
                 </div>
@@ -150,101 +160,67 @@
 
     <div id="toast-container"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // === クラウド通信のセットアップ ===
-        let app, auth, db;
-        let isOnline = false;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    <script>
+        // === Gemini API 設定 ===
+        const apiKey = ""; // 実行環境から提供されます
         
-        let currentUser = null;
-        let unsubscribeChat = null;
-        
-        // ランダムなユーザープロフィールを生成
-        const countries = ['🇯🇵', '🇺🇸', '🇬🇧', '🇫🇷', '🇩🇪', '🇮🇹', '🇨🇦', '🇦🇺', '🇧🇷', '🇮🇳', '🇰🇷', '🇸🇪'];
-        const userCountry = countries[Math.floor(Math.random() * countries.length)];
-        const userName = "User_" + Math.floor(Math.random() * 10000);
-
-        // === ゲームデータ ===
+        // === 初期データ ===
         const topics = [
             {
-                id: 'ai-jobs',
+                id: 'fried-egg',
+                category: '食のこだわり',
+                title: '目玉焼きにかける調味料、究極の正解は「醤油」か「ソース」か？',
+                summary: '日本の食卓における永遠のテーマ。醤油の香ばしさか、ソースのコクか、はたまた塩こしょう派か。あなたのこだわりを教えてください！',
+                options: { neutral: '🐾 塩こしょう他', agree: '🐟 絶対に醤油', disagree: '💢 断然ソース' }
+            },
+            {
+                id: 'ai-evolution',
                 category: 'テクノロジー',
                 title: 'AIの進化により、今後10年で人類の仕事の半分が消滅する？',
-                summary: '最新のレポートによると、生成AIの進化により世界規模で大規模な雇用シフトが起きる可能性が指摘されています。ベーシックインカムの導入を含め、社会はこれにどう備えるべきでしょうか？',
-                references: [
-                    { title: "World Economic Forum: The Future of Jobs Report", url: "https://www.weforum.org/publications/the-future-of-jobs-report-2023/" },
-                    { title: "MIT Tech Review: AI and the Workforce", url: "https://www.technologyreview.com/topic/artificial-intelligence/" },
-                    { title: "UNESCO: Recommendation on the Ethics of AI", url: "https://www.unesco.org/en/artificial-intelligence/recommendation-ethics" }
-                ]
+                summary: '生成AIの進化により世界規模で雇用シフトが起きる可能性が指摘されています。社会はどう備えるべきでしょうか？',
+                options: { neutral: '🐾 変わらない', agree: '🐟 消滅する', disagree: '💢 共存する' }
             },
             {
-                id: 'four-day-week',
-                category: '社会・経済',
-                title: '「週休3日制（週4日勤務）」は世界標準になるべきか？',
-                summary: 'ヨーロッパの一部企業で導入が進む週休3日制。生産性が向上したという報告がある一方で、サービス業などでは導入が難しいという声もあります。',
-                references: [
-                    { title: "4 Day Week Global: Pilot Program Results", url: "https://www.4dayweek.com/" },
-                    { title: "Harvard Business Review: The Case for a 4-Day Workweek", url: "https://hbr.org/2021/09/what-does-a-4-day-workweek-mean-for-the-future-of-work" },
-                    { title: "ILO: Working Time and Work-Life Balance", url: "https://www.ilo.org/global/topics/working-conditions/work-time/lang--en/index.htm" }
-                ]
+                id: 'time-machine',
+                category: 'もしもの話',
+                title: 'タイムマシンに乗れるなら「過去」と「未来」どちらに行く？',
+                summary: 'あの時の失敗をやり直したり歴史を見たい「過去」か、自分の将来や技術の進歩を見たい「未来」か。あなたの選択は？',
+                options: { neutral: '🐾 今を生きる', agree: '🐟 過去へ行く', disagree: '💢 未来へ行く' }
             },
             {
-                id: 'space-vs-earth',
-                category: '科学・環境',
-                title: '火星移住計画よりも、地球の気候変動対策に全予算を注ぐべきか？',
-                summary: '莫大な予算が投じられている宇宙開発。しかし、足元の地球では異常気象や環境破壊が進行しています。人類の優先順位はどちらにあるべきでしょうか。',
-                references: [
-                    { title: "UN Environment Programme: Global Climate Report", url: "https://www.unep.org/" },
-                    { title: "NASA: Climate Change and Space Exploration", url: "https://climate.nasa.gov/" },
-                    { title: "Nature: Space exploration vs. Earth observation", url: "https://www.nature.com/" }
-                ]
-            },
-            {
-                id: 'autonomous-vehicles',
-                category: 'テクノロジー・倫理',
-                title: '完全自動運転車は、事故の際に「乗客」と「歩行者」どちらの命を優先すべきか？',
-                summary: 'いわゆる「トロッコ問題」が自動運転車のプログラムにおいて現実の課題となっています。AIの判断基準は誰の命を優先するように設計されるべきでしょうか。',
-                references: [
-                    { title: "MIT Moral Machine: Human Perspectives on Machine Ethics", url: "https://www.moralmachine.net/" },
-                    { title: "IEEE: Ethics of Autonomous Vehicles", url: "https://ethicsinaction.ieee.org/" },
-                    { title: "Stanford HAI: AI and Human Values", url: "https://hai.stanford.edu/" }
-                ]
-            },
-            {
-                id: 'universal-basic-income',
-                category: '社会・経済',
-                title: 'すべての国民に無条件で現金を配る「ベーシックインカム(UBI)」は社会を救うか？',
-                summary: '貧困の撲滅やAIによる失業対策としてUBIが注目されています。労働意欲の低下や財源の懸念がある中、導入に賛成ですか？反対ですか？',
-                references: [
-                    { title: "Stanford Basic Income Lab", url: "https://basicincome.stanford.edu/" },
-                    { title: "World Bank: Exploring Universal Basic Income", url: "https://www.worldbank.org/en/topic/socialprotection/publication/exploring-universal-basic-income" },
-                    { title: "IMF: Basic Income vs. Targeted Transfers", url: "https://www.imf.org/en/Publications/FM/Issues/2017/10/05/fiscal-monitor-october-2017" }
-                ]
-            },
-            {
-                id: 'genetic-engineering',
-                category: '科学・医療',
-                title: '病気の予防や能力向上のため、人間の受精卵に「遺伝子編集(CRISPR)」を行うべきか？',
-                summary: '遺伝子疾患を根絶できる可能性がある一方で、「デザイナーベビー」の誕生や倫理的、社会的な不平等の拡大が懸念されています。どこまで許容されるべきでしょうか。',
-                references: [
-                    { title: "WHO: Human Genome Editing", url: "https://www.who.int/health-topics/human-genome-editing" },
-                    { title: "Nature: CRISPR and ethical implications", url: "https://www.nature.com/articles/d41586-020-00272-5" },
-                    { title: "NIH: Ethics of Gene Editing", url: "https://www.nih.gov/about-nih/who-we-are/nih-director/statements/statement-nih-funding-research-using-gene-editing-technologies-human-embryos" }
-                ]
+                id: 'cat-communication',
+                category: 'どうぶつ',
+                title: '犬派 vs 猫派：究極のパートナーはどちらか？',
+                summary: '永遠のテーマである「犬派か猫派か」。それぞれの魅力や共に暮らすメリットについて、熱く語り合いましょう！',
+                options: { neutral: '🐾 どっちも！', agree: '🐟 活発な犬派！', disagree: '💢 ツンデレ猫派！' }
             }
         ];
 
-        // === 状態管理 ===
+        // デフォルトのチャット履歴（初回のみ使用）
+        const defaultChats = {
+            'fried-egg': [
+                { id: 'msg_1', text: '絶対に醤油です！半熟の黄身と醤油の塩気が最高にご飯に合います。ニャン。', stance: 'agree', name: 'SoySauce_Cat', country: '🇯🇵', likes: 12, isMine: false },
+                { id: 'msg_3', text: '濃厚なソース一択！あのB級グルメ感がたまりません。', stance: 'disagree', name: 'Sauce_Lover', country: '🇬🇧', likes: 8, isMine: false }
+            ],
+            'ai-evolution': [],
+            'time-machine': [],
+            'cat-communication': [
+                { id: 'msg_5', text: 'ツンデレな距離感がたまらないので、絶対に猫派です。', stance: 'disagree', name: 'CatLover99', country: '🇯🇵', likes: 15, isMine: false }
+            ]
+        };
+
+        // ユーザー情報
+        const myName = "あなた🐾";
+        const myCountry = '🇯🇵';
+
+        // 状態管理
         let currentTopicId = topics[0].id;
         let userScore = 0;
         let currentStance = 'neutral';
-        const chats = {}; // リアルタイムで取得したチャットデータ
+        let chats = {};
+        let isWaitingForAI = false;
 
-        // === DOM要素 ===
+        // DOM要素
         const topicListEl = document.getElementById('topic-list');
         const chatContainer = document.getElementById('chat-container');
         const messageInput = document.getElementById('message-input');
@@ -252,47 +228,12 @@
         const stanceBtns = document.querySelectorAll('.stance-btn');
         const scoreDisplay = document.getElementById('score-display');
         const rankDisplay = document.getElementById('rank-display');
+        const typingIndicator = document.getElementById('typing-indicator');
 
-        // === 認証と初期化 ===
-        async function initNetwork() {
-            try {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    const firebaseConfig = JSON.parse(__firebase_config);
-                    app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-                    
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                    isOnline = true;
-                    showToast("グローバルネットワークに接続しました");
-                    
-                    onAuthStateChanged(auth, (user) => {
-                        currentUser = user;
-                        if (user && isOnline) {
-                            selectTopic(currentTopicId); // 認証後にトピックのデータを取得開始
-                        }
-                    });
-                } else {
-                    // Firebase設定がない環境（ご自身のホームページ等）での動作フォールバック
-                    console.log("Firebase config not found. Running in local mode.");
-                    showToast("ローカルモードで起動しました", "info");
-                    isOnline = false;
-                }
-            } catch (error) {
-                console.error("ネットワーク初期化エラー:", error);
-                showToast("通信サーバーに接続できません。ローカルモードで動作します。", "error");
-                isOnline = false;
-            }
-        }
-
+        // === 初期化処理 ===
         function init() {
+            loadData();
             renderTopicList();
-            
-            // 初回トピック選択（オフライン時または初期表示用）
             selectTopic(topics[0].id);
 
             // イベントリスナー
@@ -304,45 +245,57 @@
                 }
             });
 
+            // スタンスボタンの切り替え
             stanceBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     stanceBtns.forEach(b => {
-                        b.classList.remove('bg-gray-700', 'border-blue-500', 'border-green-500', 'border-red-500');
-                        b.classList.add('border-gray-600');
+                        b.classList.remove('bg-stone-800', 'text-white', 'border-stone-800', 'active');
+                        b.classList.add('bg-white', 'text-stone-600', 'border-stone-200');
                     });
-                    currentStance = e.target.dataset.stance;
-                    e.target.classList.remove('border-gray-600');
-                    if (currentStance === 'neutral') e.target.classList.add('bg-gray-700', 'border-blue-500');
-                    if (currentStance === 'agree') e.target.classList.add('bg-green-600/30', 'border-green-500');
-                    if (currentStance === 'disagree') e.target.classList.add('bg-red-600/30', 'border-red-500');
+                    
+                    const btnEl = e.currentTarget;
+                    currentStance = btnEl.dataset.stance;
+                    btnEl.classList.remove('bg-white', 'text-stone-600', 'border-stone-200');
+                    btnEl.classList.add('bg-stone-800', 'text-white', 'border-stone-800', 'active');
                 });
             });
+
+            showToast("カフェへようこそ！🐾", "info");
+            updateScoreUI();
         }
 
-        // === リアルタイムデータの購読 ===
-        function subscribeToTopic(topicId) {
-            if (!isOnline || !db) return;
-            if (unsubscribeChat) {
-                unsubscribeChat(); // 以前のトピックの監視を解除
+        // === データ管理 ===
+        function loadData() {
+            const savedData = localStorage.getItem('nyanko_cafe_data');
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    userScore = parsed.score || 0;
+                    chats = parsed.chats || defaultChats;
+                } catch (e) {
+                    chats = JSON.parse(JSON.stringify(defaultChats));
+                }
+            } else {
+                chats = JSON.parse(JSON.stringify(defaultChats));
             }
-            if (!currentUser) return;
+        }
 
-            const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', `messages_${topicId}`);
-            
-            unsubscribeChat = onSnapshot(messagesRef, (snapshot) => {
-                const msgs = [];
-                snapshot.forEach(doc => {
-                    msgs.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // タイムスタンプ順にソート
-                msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-                
-                chats[topicId] = msgs;
-                renderMessages();
-            }, (error) => {
-                console.error("メッセージ取得エラー:", error);
-            });
+        function saveData() {
+            localStorage.setItem('nyanko_cafe_data', JSON.stringify({
+                score: userScore,
+                chats: chats
+            }));
+        }
+
+        function resetData() {
+            if(confirm("チャット履歴とポイントをリセットしますか？ニャ？")) {
+                localStorage.removeItem('nyanko_cafe_data');
+                userScore = 0;
+                chats = JSON.parse(JSON.stringify(defaultChats));
+                selectTopic(currentTopicId);
+                updateScoreUI();
+                showToast("データをリセットしたニャ🧹");
+            }
         }
 
         // === UI更新関数 ===
@@ -351,14 +304,17 @@
             topics.forEach(topic => {
                 const isActive = topic.id === currentTopicId;
                 const div = document.createElement('div');
-                div.className = `p-3 rounded-lg cursor-pointer transition border ${isActive ? 'bg-blue-900/30 border-blue-500' : 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-500'}`;
+                
+                if (isActive) {
+                    div.className = 'p-4 cursor-pointer transition bg-stone-100 border-l-4 border-stone-800';
+                } else {
+                    div.className = 'p-4 cursor-pointer transition border-b border-stone-100 hover:bg-stone-50';
+                }
+                
                 div.onclick = () => selectTopic(topic.id);
                 div.innerHTML = `
-                    <div class="text-xs text-blue-400 mb-1">${topic.category}</div>
-                    <div class="text-sm font-bold text-gray-200 line-clamp-2">${topic.title}</div>
-                    <div class="text-xs text-gray-500 mt-2 flex justify-between">
-                        <span><i class="fa-solid fa-users"></i> ${isOnline ? 'Live' : 'Local'}</span>
-                    </div>
+                    <div class="text-[10px] font-bold text-stone-500 mb-1 tracking-wider">${topic.category}</div>
+                    <div class="text-xs sm:text-sm font-bold text-stone-800 line-clamp-2 leading-tight">${topic.title}</div>
                 `;
                 topicListEl.appendChild(div);
             });
@@ -368,80 +324,85 @@
             currentTopicId = id;
             const topic = topics.find(t => t.id === id);
             
-            // ヘッダー更新
+            // ヘッダー情報の更新
             document.getElementById('topic-category').textContent = topic.category;
             document.getElementById('topic-title').textContent = topic.title;
             document.getElementById('topic-summary').textContent = topic.summary;
 
-            // 資料リスト更新
-            const refContainer = document.getElementById('topic-references');
-            if (refContainer) {
-                refContainer.innerHTML = '';
-                if (topic.references) {
-                    topic.references.forEach(ref => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `<a href="${ref.url}" target="_blank" class="text-blue-400 hover:text-blue-300 transition flex items-center"><i class="fa-solid fa-external-link-alt text-xs w-4"></i><span class="hover:underline">${ref.title}</span></a>`;
-                        refContainer.appendChild(li);
-                    });
-                }
+            // 選択肢ボタンのテキスト更新
+            if (topic.options) {
+                document.querySelector('.stance-btn[data-stance="neutral"]').innerHTML = topic.options.neutral;
+                document.querySelector('.stance-btn[data-stance="agree"]').innerHTML = topic.options.agree;
+                document.querySelector('.stance-btn[data-stance="disagree"]').innerHTML = topic.options.disagree;
             }
 
             renderTopicList(); 
+            renderMessages();
             
-            if (isOnline) {
-                subscribeToTopic(id);
-            } else {
-                // ローカルモードの場合は保存されている履歴を表示
-                if (!chats[id]) chats[id] = [];
-                renderMessages();
+            // モバイルではトピック選択後にチャットへスクロール
+            if(window.innerWidth < 768) {
+                setTimeout(() => {
+                    document.querySelector('section').scrollIntoView({behavior: 'smooth'});
+                }, 100);
             }
         }
 
         function renderMessages() {
             chatContainer.innerHTML = '';
             
-            // システムメッセージを先頭に追加
+            // システムメッセージ
             const currentTopic = topics.find(t => t.id === currentTopicId);
             const sysEl = document.createElement('div');
-            sysEl.className = 'message-enter flex justify-center my-4';
-            sysEl.innerHTML = `<span class="bg-gray-800 text-gray-400 text-xs px-3 py-1 rounded-full">🗣️ 「${currentTopic.title}」のディベートが開始されました。</span>`;
+            sysEl.className = 'message-enter flex justify-center my-2 sm:my-4';
+            sysEl.innerHTML = `<span class="bg-transparent text-stone-400 text-[10px] sm:text-xs px-3 py-1 font-bold text-center">「${currentTopic.title}」について語り合いましょう</span>`;
             chatContainer.appendChild(sysEl);
 
             const messages = chats[currentTopicId] || [];
-            const stanceIcons = { neutral: '🤔', agree: '👍', disagree: '👎' };
+            
+            const stanceStyles = { 
+                neutral: { icon: '🐾', color: 'text-stone-500' }, 
+                agree: { icon: '🐟', color: 'text-stone-500' }, 
+                disagree: { icon: '💢', color: 'text-stone-500' } 
+            };
             
             messages.forEach(msg => {
-                const isMine = msg.userId === currentUser?.uid;
                 const msgEl = document.createElement('div');
-                msgEl.className = 'message-enter flex gap-4 w-full ' + (isMine ? 'justify-end' : 'justify-start');
+                msgEl.className = 'message-enter flex gap-2 sm:gap-3 w-full ' + (msg.isMine ? 'justify-end' : 'justify-start');
+                const style = stanceStyles[msg.stance] || stanceStyles['neutral'];
 
-                if (isMine) {
+                if (msg.isMine) {
                     msgEl.innerHTML = `
-                        <div class="max-w-[80%] flex flex-col items-end gap-1">
-                            <div class="flex items-center gap-2 text-xs text-gray-400">
-                                <span class="text-blue-400 font-bold">You (${msg.country || userCountry})</span>
-                                <span>${stanceIcons[msg.stance] || '🤔'}</span>
+                        <div class="max-w-[85%] sm:max-w-[75%] flex flex-col items-end gap-1">
+                            <div class="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold text-stone-400">
+                                <span class="text-stone-500">${msg.name}</span>
+                                <span class="bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200 ${style.color}">${style.icon}</span>
                             </div>
-                            <div class="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-sm shadow-md text-sm leading-relaxed whitespace-pre-wrap">${msg.text}</div>
-                            <div class="text-xs text-gray-500 flex items-center gap-1">
-                                <i class="fa-solid fa-heart text-pink-500"></i> ${msg.likes || 0}
+                            <div class="bg-stone-800 text-white p-3 sm:p-4 rounded-lg rounded-tr-sm text-sm leading-relaxed whitespace-pre-wrap">${escapeHTML(msg.text)}</div>
+                            <div class="text-[10px] sm:text-[11px] text-stone-400 flex items-center gap-1 font-bold mt-1">
+                                <i class="fa-solid fa-heart text-stone-300"></i> ${msg.likes || 0}
                             </div>
                         </div>
                     `;
                 } else {
+                    const catFaces = ['🐱', '😸', '😹', '😻', '😼', '😽'];
+                    // IDなどから安定したランダムな猫顔を選ぶ
+                    let charCodeSum = 0;
+                    for(let i=0; i<msg.name.length; i++) charCodeSum += msg.name.charCodeAt(i);
+                    const randomCat = catFaces[charCodeSum % catFaces.length];
+                    
                     msgEl.innerHTML = `
-                        <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-lg shrink-0 border border-gray-600 shadow-sm">
-                            ${msg.country || '🌍'}
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-stone-100 flex items-center justify-center text-lg sm:text-xl shrink-0 mt-3 sm:mt-4">
+                            ${randomCat}
                         </div>
-                        <div class="max-w-[80%] flex flex-col items-start gap-1">
-                            <div class="text-xs text-gray-400 font-bold flex items-center gap-2">
-                                ${msg.name || 'Anonymous'}
-                                <span>${stanceIcons[msg.stance] || '🤔'}</span>
+                        <div class="max-w-[85%] sm:max-w-[75%] flex flex-col items-start gap-1">
+                            <div class="text-[10px] sm:text-xs font-bold text-stone-400 flex items-center gap-1.5 sm:gap-2">
+                                ${msg.name} <span class="font-normal opacity-70">${msg.country || '🌍'}</span>
+                                <span class="bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200 ${style.color}">${style.icon}</span>
                             </div>
-                            <div class="bg-gray-800 border border-gray-700 text-gray-200 p-3 rounded-2xl rounded-tl-sm shadow-md text-sm leading-relaxed whitespace-pre-wrap">${msg.text}</div>
-                            <div class="text-xs text-gray-500 flex items-center gap-3">
-                                <button class="hover:text-pink-400 transition flex items-center gap-1" onclick="likeMessage('${msg.id}', ${msg.likes || 0})">
-                                    <i class="fa-regular fa-heart"></i> ${msg.likes || 0}
+                            <div class="bg-white border border-stone-200 text-stone-800 p-3 sm:p-4 rounded-lg rounded-tl-sm text-sm leading-relaxed whitespace-pre-wrap">${escapeHTML(msg.text)}</div>
+                            <div class="text-[10px] sm:text-[11px] text-stone-400 flex items-center gap-3 mt-1">
+                                <button class="hover:text-stone-600 hover:bg-stone-100 px-2 py-1 rounded transition flex items-center gap-1 sm:gap-1.5 font-bold btn-press" onclick="likeMessage('${msg.id}')">
+                                    <i class="fa-regular fa-heart"></i> ${msg.likes || 0} いいね
                                 </button>
                             </div>
                         </div>
@@ -453,112 +414,261 @@
             scrollToBottom();
         }
 
-        // === アクション ===
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 50);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag] || tag));
+        }
+
+        // === メインロジック（送信・AI応答） ===
         async function handleSendMessage() {
+            if(isWaitingForAI) return;
             const text = messageInput.value.trim();
             if (!text) return;
-            // オンライン環境で未ログインの場合は処理しない
-            if (isOnline && !currentUser) return;
 
+            // 自分のメッセージを追加
+            const newMsgId = 'msg_' + Date.now();
             const messageData = {
-                id: 'msg_' + Date.now(), // ローカルモード用のID
+                id: newMsgId,
                 text: text,
                 stance: currentStance,
-                userId: currentUser?.uid || 'local_user_' + Date.now(),
-                name: userName,
-                country: userCountry,
-                timestamp: Date.now(),
-                likes: 0
+                name: myName,
+                country: myCountry,
+                likes: 0,
+                isMine: true
             };
 
-            messageInput.value = ''; // すぐにクリアして体感速度を上げる
+            messageInput.value = ''; 
+            messageInput.style.height = 'auto'; // テキストエリアの高さリセット
+            if (!chats[currentTopicId]) chats[currentTopicId] = [];
+            chats[currentTopicId].push(messageData);
             
-            if (isOnline && db) {
-                try {
-                    const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`);
-                    await addDoc(messagesRef, messageData);
-                    
-                    // スコアアップ処理
-                    const earnedScore = Math.floor(text.length * 0.5) + 10; 
-                    addScore(earnedScore);
-                    showToast(`発言を世界に送信しました！ 影響力 +${earnedScore} INF`);
-                } catch (error) {
-                    console.error("送信エラー:", error);
-                    showToast("メッセージの送信に失敗しました", "error");
+            // UI更新
+            renderMessages();
+            const earnedScore = Math.floor(text.length * 0.5) + 10; 
+            addScore(earnedScore);
+            saveData();
+            
+            // AIに返信をリクエスト
+            requestAIResponse(text, currentStance);
+        }
+
+        // Gemini API 呼び出し
+        async function requestAIResponse(userMessage, userStance) {
+            if(!apiKey) {
+                // APIキーがない場合のフォールバック（デモ用）
+                setTimeout(() => generateFallbackResponse(), 1500);
+                return;
+            }
+
+            isWaitingForAI = true;
+            sendBtn.disabled = true;
+            typingIndicator.classList.remove('hidden');
+            scrollToBottom();
+
+            const topic = topics.find(t => t.id === currentTopicId);
+            
+            // AIの性格バリエーション
+            const personas = [
+                "賢くて少し生意気だが、どこか愛嬌があるインテリ猫",
+                "のんびり屋で食いしん坊な、常にチュールやごはんのことを考えているマイペース猫",
+                "感情豊かで熱血漢な、正義感の強い街のボス猫",
+                "少し不思議な感性を持つ、哲学的なことを言う宇宙猫",
+                "人間を優しく見守る、おばあちゃんのような包容力のある長老猫",
+                "若くて好奇心旺盛な、何にでも首を突っ込むやんちゃな子猫",
+                "少しツンデレで、素直に褒めないけど実は人間のことが大好きな猫"
+            ];
+            const randomPersona = personas[Math.floor(Math.random() * personas.length)];
+            
+            const prompt = `
+あなたは「にゃんこディベートカフェ」というインターネット掲示板の参加者である猫です。
+あなたの性格設定: 「${randomPersona}」
+
+現在の議題: 「${topic.title}」
+人間のユーザーが以下の意見（解答）を投稿しました。
+
+ユーザーの立場: ${userStance} (agree=賛成, disagree=反対, neutral=中立)
+ユーザーの意見: 「${userMessage}」
+
+この意見に対して、別の参加者の猫として返信してください。
+以下の条件を厳守してください：
+1. ユーザーの意見（解答）の内容をしっかり踏まえた上で、それに対するあなた自身の意見や感想を述べること。
+2. 上記の「性格設定」になりきって、猫ならではの独自の視点や価値観を交えて回答してください。
+3. 語尾には自然な形で「ニャ」「ニャン」「ニャー」などをつけること。
+4. 50〜100文字程度の簡潔な文章にすること。
+5. 返信の出力は以下のJSONフォーマットのみにすること。Markdownの修飾や余計なテキストは含めないでください。
+
+JSONフォーマット:
+{
+  "stance": "agree" もしくは "disagree" もしくは "neutral",
+  "name": "あなたの猫としてのニックネーム（性格に合わせた名前）",
+  "country": "国旗の絵文字（ランダムな国）",
+  "text": "返信のテキスト"
+}
+`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            stance: { type: "STRING" },
+                            name: { type: "STRING" },
+                            country: { type: "STRING" },
+                            text: { type: "STRING" }
+                        },
+                        required: ["stance", "name", "country", "text"]
+                    }
                 }
+            };
+
+            let delay = 1000;
+            let aiData = null;
+
+            // Exponential Backoff Retry
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!response.ok) throw new Error('API Error');
+                    
+                    const result = await response.json();
+                    const textResult = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    aiData = JSON.parse(textResult);
+                    break; // 成功したらループを抜ける
+                } catch (e) {
+                    if (i === 4) {
+                        console.error("API failed after retries.");
+                    } else {
+                        await new Promise(res => setTimeout(res, delay));
+                        delay *= 2;
+                    }
+                }
+            }
+
+            // UIを元に戻す
+            isWaitingForAI = false;
+            sendBtn.disabled = false;
+            typingIndicator.classList.add('hidden');
+
+            if (aiData && aiData.text) {
+                addAiMessage(aiData);
             } else {
-                // ローカルモード時の処理
-                if (!chats[currentTopicId]) chats[currentTopicId] = [];
-                chats[currentTopicId].push(messageData);
-                renderMessages();
-                
-                const earnedScore = Math.floor(text.length * 0.5) + 10; 
-                addScore(earnedScore);
-                showToast(`発言しました！（ローカル） 影響力 +${earnedScore} INF`);
+                generateFallbackResponse();
             }
         }
 
-        // グローバルスコープに関数を公開（onclick用）
-        window.likeMessage = async function(messageId, currentLikes) {
-            if (isOnline && db && currentUser) {
-                try {
-                    const msgRef = doc(db, 'artifacts', appId, 'public', 'data', `messages_${currentTopicId}`, messageId);
-                    await updateDoc(msgRef, {
-                        likes: currentLikes + 1
-                    });
-                    addScore(5); // いいねしてもスコアが少し上がる
-                    showToast("共感しました！");
-                } catch (error) {
-                    console.error("いいねエラー:", error);
-                }
-            } else if (!isOnline) {
-                // ローカルモード時の処理
-                const msgs = chats[currentTopicId] || [];
-                const targetMsg = msgs.find(m => m.id === messageId);
-                if (targetMsg) {
-                    targetMsg.likes = (targetMsg.likes || 0) + 1;
-                    renderMessages();
-                    addScore(5);
-                    showToast("共感しました！（ローカル）");
-                }
+        function addAiMessage(data) {
+            const newMsgId = 'msg_' + Date.now();
+            const messageData = {
+                id: newMsgId,
+                text: data.text,
+                stance: data.stance || 'neutral',
+                name: data.name || '通りすがりの猫',
+                country: data.country || '🐈',
+                likes: 0,
+                isMine: false
+            };
+
+            chats[currentTopicId].push(messageData);
+            renderMessages();
+            saveData();
+            showToast("🐾 新しいコメントがつきました！", "info");
+        }
+
+        function generateFallbackResponse() {
+            // APIキーがない、または失敗した場合のダミー応答のレパートリー
+            const fallbacks = [
+                { stance: 'neutral', name: 'おねむ猫', text: "ちょっと今お昼寝中だから、後でゆっくり考えるニャ💤" },
+                { stance: 'neutral', name: '食いしん坊猫', text: "難しい話はチュールを食べてからにするニャン！お腹すいたニャ。" },
+                { stance: 'neutral', name: '傍観猫', text: "ニャるほど...人間はいろいろ考えてて大変ニャね。爪とぎでもしてリラックスするニャ。" },
+                { stance: 'agree', name: '同調猫', text: "激しく同意ニャ！その意見、肉球スタンプ100個あげたいくらいニャ！" },
+                { stance: 'agree', name: '賢い猫', text: "論理的で素晴らしい意見ニャ。吾輩も全く同じ考えだニャン。" },
+                { stance: 'disagree', name: 'あまのじゃく', text: "うーん、私はそうは思わないニャ。もっと猫の気持ちになって考えてみるニャ。" },
+                { stance: 'disagree', name: 'ボス猫', text: "甘いニャ！そんな考えじゃこの街は生きていけないニャン。出直してくるニャ！" },
+                { stance: 'neutral', name: '不思議猫', text: "宇宙の真理に近づくような意見ニャね...で、ごはんはまだニャ？" },
+                { stance: 'agree', name: '子猫', text: "よくわかんないけど、かっこいいニャ！さんせいニャ！" },
+                { stance: 'disagree', name: 'ツンデレ猫', text: "べ、別にあなたの意見が気に食わないわけじゃないニャ！ただ、もうちょっと考え直した方がいいと思うニャ。" }
+            ];
+            
+            const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+            const flags = ['🇯🇵', '🇺🇸', '🇬🇧', '🇫🇷', '🐈', '🐾', '🇮🇹', '🇨🇦'];
+
+            addAiMessage({
+                stance: fallback.stance,
+                name: fallback.name,
+                country: flags[Math.floor(Math.random() * flags.length)],
+                text: fallback.text
+            });
+        }
+
+        // いいね機能
+        window.likeMessage = function(messageId) {
+            const msgs = chats[currentTopicId] || [];
+            const targetMsg = msgs.find(m => m.id === messageId);
+            
+            if (targetMsg) {
+                targetMsg.likes = (targetMsg.likes || 0) + 1;
+                renderMessages();
+                addScore(5);
+                saveData();
+                showToast("😻 いいね！ +5 🐾");
             }
         };
 
-        // === ユーティリティ ===
-        function scrollToBottom() {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
+        // スコアとランクの処理
         function addScore(points) {
             userScore += points;
+            updateScoreUI();
+        }
+
+        function updateScoreUI() {
+            scoreDisplay.textContent = `${userScore} 🐾`;
             
-            scoreDisplay.textContent = `${userScore} INF`;
-            scoreDisplay.classList.add('text-white', 'scale-110');
+            // アニメーション効果
+            scoreDisplay.classList.add('text-stone-900', 'scale-110');
             setTimeout(() => {
-                scoreDisplay.classList.remove('text-white', 'scale-110');
+                scoreDisplay.classList.remove('text-stone-900', 'scale-110');
             }, 300);
 
-            let newRank = "ルーキー";
-            if (userScore > 500) newRank = "グローバルインフルエンサー";
-            else if (userScore > 200) newRank = "オピニオンリーダー";
-            else if (userScore > 100) newRank = "ディベーター";
+            // ランク計算
+            let newRank = "子猫";
+            if (userScore >= 1000) newRank = "伝説の猫神";
+            else if (userScore >= 500) newRank = "街のボス猫";
+            else if (userScore >= 200) newRank = "立派な飼い猫";
+            else if (userScore >= 50) newRank = "お散歩猫";
 
             if (rankDisplay.textContent !== newRank) {
                 rankDisplay.textContent = newRank;
-                showToast(`🎉 ランクアップ！ [${newRank}] になりました！`);
+                if(userScore > 0) showToast(`🎉 ランクアップ！ [${newRank}] になったニャ！`);
             }
         }
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            toast.className = 'toast flex items-center gap-3';
+            toast.className = 'toast flex items-center gap-3 text-sm';
+            
             if (type === 'info') {
-                toast.style.background = 'rgba(59, 130, 246, 0.9)'; 
-            } else if (type === 'error') {
-                toast.style.background = 'rgba(239, 68, 68, 0.9)';
+                toast.style.background = '#292524'; // stone-800
+            } else {
+                toast.style.background = '#292524';
             }
-            toast.innerHTML = `<i class="fa-solid fa-bell"></i> <span>${message}</span>`;
+            
+            toast.innerHTML = `<i class="fa-solid fa-paw text-lg opacity-80"></i> <span>${message}</span>`;
             container.appendChild(toast);
 
             setTimeout(() => {
@@ -566,8 +676,16 @@
             }, 3000);
         }
 
-        // 実行開始 (ネットワーク初期化後にUI初期化)
-        initNetwork().then(init);
+        // 自動リサイズテキストエリア
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if(this.scrollHeight > 100) this.style.overflowY = 'auto';
+            else this.style.overflowY = 'hidden';
+        });
+
+        // 起動
+        document.addEventListener('DOMContentLoaded', init);
 
     </script>
 </body>
